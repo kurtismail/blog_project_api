@@ -1,171 +1,76 @@
-from django.db.models import fields
-from django.http import request
 from rest_framework import serializers
-# from users.models import Profile
-from blog.models import Post, Comment, Like
-from django.db.models import Q
+from .models import Post, Like, Comment, PostView
+
+import datetime
 
 
-class CommentSeializer(serializers.ModelSerializer):
-    # status = serializers.ChoiceField(choices=Post.options)
-    user = serializers.StringRelatedField()
+
+class CommentSerializer(serializers.ModelSerializer):
+
     post = serializers.StringRelatedField()
+    post_id = serializers.IntegerField()
+    commentor = serializers.StringRelatedField()
+    commentor_id = serializers.IntegerField()
+    created_date = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Comment
-        fields = (
-            'id',
-            'user',
-            'post',
-            'time_stamp',
-            'content',
-        )
+        fields = ('id', 'post_id', 'post', 'title', 'comment', 'commentor','commentor_id', 'created_date')
 
 
-class CommentCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Comment
-        fields = ("content",)
-
-
-""" class LikeSerializer(serializers.ModelSerializer):
-    liked = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = Like
-        fields = [
-            "liked"
-        ]
-
-    def get_liked(self, obj):
-        request = self.context['request']
-        if request.user.is_authenticated:
-            if Like.objects.filter(user=request.user).exists():
-                return True
-            return False """
-
-
-class PostDetailSerializer(serializers.ModelSerializer):
-    status = serializers.ChoiceField(choices=Post.options)
-    author = serializers.SerializerMethodField()
-    has_liked = serializers.SerializerMethodField()
-    comments = CommentSeializer(many=True)
-    # like = LikeSerializer(many=True)
-    owner = serializers.SerializerMethodField(read_only=True)
-    update_url = serializers.HyperlinkedIdentityField(
-        view_name='update',
-        lookup_field='slug'
-    )
-    like_url = serializers.HyperlinkedIdentityField(
-        view_name='like',
-        lookup_field='slug'
-    )
-    delete_url = serializers.HyperlinkedIdentityField(
-        view_name='delete',
-        lookup_field='slug'
-    )
-    comment_url = serializers.HyperlinkedIdentityField(
-        view_name='comment',
-        lookup_field='slug'
-    )
-
-    class Meta:
-        model = Post
-        fields = (
-            'like_url',
-            'update_url',
-            'delete_url',
-            'comment_url',
-            'id',
-            'title',
-            'content',
-            'image',
-            'status',
-            'published_date',
-            'last_updated',
-            'author',
-            'comments',
-            'slug',
-            'get_comment_count',
-            'get_view_count',
-            'get_like_count',
-            'owner',       # booleans
-            "has_liked"    # booleans
-        )
-
-    def get_author(self, obj):
-        return obj.author.username
-
-    def get_owner(self, obj):
-        request = self.context['request']
-        if request.user.is_authenticated:
-            if obj.author == request.user:
-                return True
-            return False
-
-    def get_has_liked(self, obj):
-        request = self.context['request']
-        if request.user.is_authenticated:
-            if Post.objects.filter(Q(like__user=request.user) & Q(like__post=obj)).exists():
-                return True
-            return False
-
-
-class PostListSerializer(serializers.ModelSerializer):
-    author = serializers.SerializerMethodField()
-    detail_url = serializers.HyperlinkedIdentityField(
-        view_name='detail',
-        lookup_field='slug'
-    )
-
-    class Meta:
-        model = Post
-        fields = (
-            'detail_url',
-            'title',
-            'content',
-            'image',
-            'status',
-            'published_date',
-            'author',
-            'slug',
-            'get_comment_count',
-            'get_view_count',
-            'get_like_count'
-        )
-
-    def get_author(self, obj):
-        return obj.author.username
-
-
-class PostCreateUpdateSerializer(serializers.ModelSerializer):
-    # status = serializers.ChoiceField(choices=Post.options)
-    owner = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = Post
-        fields = (
-            'id',
-            'title',
-            'content',
-            'image',
-            'status',
-            'owner',
-        )
-
-    def get_owner(self, obj):
-        request = self.context['request']
-        if request.user.is_authenticated:
-            if obj.author == request.user:
-                return True
-            return False
+    def get_created_date(self, obj):
+        return datetime.datetime.strftime(obj.created_date, '%d,%m,%Y')
+    
 
 
 class LikeSerializer(serializers.ModelSerializer):
 
+    post = serializers.StringRelatedField()
+    post_id = serializers.IntegerField()
+    liker = serializers.StringRelatedField()
+    liker_id = serializers.IntegerField()
+
     class Meta:
         model = Like
-        fields = [
-            "user",
-            "post"
-        ]
+        fields = ('id', 'post', 'post_id','liker', 'liker_id', 'is_liked')
+
+
+
+class PostSerializer(serializers.ModelSerializer):
+
+    author = serializers.StringRelatedField()
+    author_id = serializers.IntegerField()
+    image = serializers.StringRelatedField()
+    created_date = serializers.SerializerMethodField()
+    visit_count = serializers.SerializerMethodField()
+    like_count = serializers.SerializerMethodField()
+
+    comments = CommentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Post
+        fields = (
+            'id',
+            'image',
+            'title',
+            'content',
+            'is_published',
+            'created_date',
+            'author',
+            'author_id',
+            'comments',
+            'slug',
+            'visit_count',
+            'like_count',
+
+        )
+
+    def get_created_date(self, obj):
+        return datetime.datetime.strftime(obj.created_date, '%d,%m,%Y')
+    
+    def get_like_count(self, obj):
+        return Like.objects.filter(post_id=obj.id, is_liked=True).count()
+    
+    def get_visit_count(self, obj):
+        return PostView.objects.filter(post=obj).count()
