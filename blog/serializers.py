@@ -89,8 +89,8 @@ class PostDetailSerializer(serializers.ModelSerializer):
             'get_comment_count',
             'get_view_count',
             'get_like_count',
-            'owner',       # boolean
-            "has_liked"    # boolean
+            'owner',       # booleans
+            "has_liked"    # booleans
         )
 
     def get_author(self, obj):
@@ -159,7 +159,7 @@ class PostCreateUpdateSerializer(serializers.ModelSerializer):
             if obj.author == request.user:
                 return True
             return False
-    
+
 
 class LikeSerializer(serializers.ModelSerializer):
 
@@ -169,5 +169,3 @@ class LikeSerializer(serializers.ModelSerializer):
             "user",
             "post"
         ]
-
-
